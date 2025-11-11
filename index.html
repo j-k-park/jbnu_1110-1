@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>9장 학교지식 인식론의 전환</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chosen Palette: Warm Neutrals & Slate Blue --><!-- Application Structure Plan: 이 애플리케이션은 보고서의 선형적인 슬라이드 구조를 탈피하여, 사용자가 핵심 주제(전통적 지식 비판, 20세기 인식론의 한계, 새로운 대안, 결론)를 자유롭게 탐색할 수 있는 주제별 대시보드 형태로 설계되었습니다. 상단 탐색 메뉴를 통해 각 주제로 즉시 이동할 수 있으며, 각 섹션 내에서는 클릭 가능한 카드와 다이어그램을 통해 정보를 단계적으로 발견할 수 있습니다. 이러한 구조는 복잡한 철학적 개념들을 한 번에 보여주기보다 사용자의 상업작용에 따라 점진적으로 제시하여 정보 과부하를 줄이고, 개념 간의 관계를 더 쉽게 파악하도록 돕기 위해 선택되었습니다. --><!-- Visualization & Content Choices: 보고서의 내용이 텍스트 중심의 개념 설명이므로, 데이터 시각화 차트 대신 개념의 구조와 관계를 보여주는 데 중점을 두었습니다. 1) 전통적 지식 비판: 3가지 관점을 나란히 배치된 카드로 제시하여 비교/탐색을 용이하게 했습니다(HTML/CSS/JS). 2) 20세기 인식론의 한계: 각 인식론(본질주의 등)과 그에 대한 비판을 연결된 카드로 구성하여 '이론과 반론' 구조를 명확히 했습니다(HTML/CSS/JS). 3) 비대표성이론: 핵심 개념과 하위 이론들의 관계를 시각적인 다이어그램 형태로 구현하여 복잡한 이론적 관계를 직관적으로 이해할 수 있게 했습니다(HTML/CSS/JS). 4) 결론: 인본주의와 포스트휴먼 경험의 차이점을 명확하게 보여주기 위해 비교 테이블을 사용했습니다(HTML). 이 모든 방식은 텍스트를 시각적, 공간적으로 재구성하여 사용자의 이해를 돕는 것을 목표로 합니다. --><!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. --><style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #F8F6F2; /* 변경 */
+            color: #3D3D3D; /* 변경 */
+        }
+        .nav-item {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-item.active, .nav-item:hover {
+            color: #C87A4B; /* 변경 */
+            border-bottom-color: #C87A4B; /* 변경 */
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #EAE8E4; /* 변경 */
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -4px rgba(0, 0, 0, 0.07);
+        }
+        .card-title {
+            color: #3D3D3D; /* 변경 */
+            font-weight: 600;
+        }
+        .expandable .details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+        .expandable.open .details {
+            max-height: 1000px; /* 이미지 높이를 위해 충분히 늘림 */
+        }
+        .tag {
+            background-color: #E2E8F0;
+            color: #4A5568;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+        }
+        .diagram-box {
+            border: 2px solid #CBD5E0;
+            background-color: white;
+            padding: 1rem;
+            text-align: center;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            height: 120px;
+        }
+        .diagram-connector {
+            background-color: #CBD5E0;
+            flex-grow: 1;
+        }
+        .gemini-btn {
+            background-color: #C87A4B;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .gemini-btn:hover {
+            background-color: #AF6439;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #C87A4B;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .keyword-teal { color: #0D9488; }
+        .keyword-orange { color: #F97316; }
+
+        /* Image Modal Styles */
+        #image-modal {
+            transition: opacity 0.3s ease;
+        }
+        #modal-image {
+            transition: transform 0.3s ease;
+        }
+        #image-modal.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #image-modal:not(.hidden) {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div id="app" class="container mx-auto px-4 py-8 max-w-5xl">
+        <header class="text-center mb-8">
+            <h3 class="text-xl md:text-xl font-bold mb-2">제4부 포스트휴먼 사회에서의 <strong class="keyword-orange">학교교육과정</strong>의 변화</h3><br>
+            <h2 class="text-3xl md:text-4xl font-bold mb-2">9장 학교지식 인식론의 전환</h2>
+            <p class="text-lg"><br><strong class="keyword-teal">인본주의</strong>를 넘어 <strong class="keyword-orange">포스트휴먼 경험</strong>으로의 여정</p>
+            <p class="text-right font-bold mt-4">발표자 : 202462304 박정교</p>
+            <div class="mt-2 flex justify-end">
+                <img id="adjustable-image" src="https://ivy-rugby-daf.notion.site/image/attachment%3A3a199f97-f1d4-405b-856d-1eb38e8402f2%3A%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7-2025-10-10-214714.svg?table=block&id=2883ec20-06d9-802c-8879-f10a58613375&spaceId=a57f2ff5-0671-465c-bf6a-c699bdf0fd16&userId=&cache=v2" alt="Diagram Image" class="" style="width: 140px; height: auto;">
+            </div>
+        </header>
+
+        <nav class="flex flex-wrap justify-center border-b mb-12">
+            <button data-target="s1" class="nav-item active text-base font-semibold py-4 px-4">1. 전통적 지식 구분</button>
+            <button data-target="s2" class="nav-item text-base font-semibold py-4 px-4">2. 20세기 인식론 한계</button>
+            <button data-target="s3" class="nav-item text-base font-semibold py-4 px-4">3. 새로운 대안</button>
+            <button data-target="s4" class="nav-item text-base font-semibold py-4 px-4">4. 결론</button>
+            <button data-target="s5" class="nav-item text-base font-semibold py-4 px-4">5. 생각해 볼 것</button>
+            <button data-target="s6" class="nav-item text-base font-semibold py-4 px-4">6. 2022 개정교육과정</button>
+        </nav>
+
+        <main id="content-container">
+            <section id="s1" class="content-section active">
+                <div class="text-center mb-10">
+                    <div class="flex justify-center items-center">
+                        <svg class="w-8 h-8 mr-4 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path></svg>
+                        <h2 class="text-3xl font-bold">전통적 지식 구분은 타당한 것인가?</h2>
+                    </div>
+                    <p class="max-w-3xl mx-auto mt-2"><strong class="keyword-teal">포스트휴먼 인식론</strong>이 기존 학문 구분의 타당성에 근본적 질문을 던짐. <br>이 섹션에서는 3가지 관점에서 전통적 지식 구분의 근거를 검토하고, 그 구분이 <strong class="keyword-orange">절대적이지 않음</strong>을 보여줌.</p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="card">
+                        <div class="flex items-center mb-3">
+                            <svg class="w-6 h-6 mr-3 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                            <h3 class="card-title text-xl">철학적 인식론</h3>
+                        </div>
+                        <p>지식 분류는 20세기 초 <strong class="keyword-teal">논리실증주의</strong>에서 시작된 최신 현상임. <br>고대 희랍 지식은 원래 <strong class="keyword-orange">간학문적</strong>이었고, 플라톤은 철학자를 지식 통합자로 봤음.</p>
+                    </div>
+                    <div class="card">
+                        <div class="flex items-center mb-3">
+                            <svg class="w-6 h-6 mr-3 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            <h3 class="card-title text-xl">인류학적 인식론</h3>
+                        </div>
+                        <p><strong class="keyword-teal">학문 영역화</strong>는 학자들이 성과를 보호하고 권위를 유지하려는 활동의 결과물임. 전문 용어로 독자성을 유지하고, 정서적-이성적 지식 같은 <strong class="keyword-orange">이분법</strong>이 여전히 교과 지식의 기초임.</p>
+                    </div>
+                    <div class="card">
+                        <div class="flex items-center mb-3">
+                            <svg class="w-6 h-6 mr-3 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.368a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path></svg>
+                            <h3 class="card-title text-xl">사회학적 인식론</h3>
+                        </div>
+                        <p>지식 분류는 객관적 실체가 아닌 사회·문화·이념의 영향을 받는 <strong class="keyword-teal">사회적 구성물</strong>임. <br>학문 영역은 절대적 실재가 아닌, 특정 연구 관심을 위해 형성된 <strong class="keyword-orange">상대적인 것</strong>임.</p>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="s2" class="content-section">
+                 <div class="text-center mb-10">
+                    <div class="flex justify-center items-center">
+                        <svg class="w-8 h-8 mr-4 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 8h16M4 16h16M8 4v16m8-16v16"></path></svg>
+                        <h2 class="text-3xl font-bold">20세기 <span class="keyword-orange">교육과정</span> 인식론의 한계</h2>
+                    </div>
+                    <p class="max-w-3xl mx-auto mt-2">20세기를 지배한 <strong class="keyword-teal">본질주의, 구조주의, 경험주의</strong>는 오늘날 지식 생태계를 설명하기에 한계가 있음. <br>각 인식론의 핵심 주장과 왜 유효하지 않은지 탐구함.</p>
+                </div>
+                <div class="space-y-8">
+                    <div class="card expandable cursor-pointer">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <svg class="w-6 h-6 mr-3 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 21a9 9 0 100-18 9 9 0 000 18z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15a3 3 0 100-6 3 3 0 000 6z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 6l-1.5 1.5M9 18l-1.5 1.5M9 6l-2 2M15 18l-2-2"></path></svg>
+                                <h3 class="card-title text-2xl">1. 본질주의적 인식론의 오류</h3>
+                            </div>
+                            <span class="text-gray-500 text-2xl transform transition-transform duration-300">▼</span>
+                        </div>
+                        <div class="details mt-4 text-gray-700 space-y-4">
+                            <div>
+                                <h4 class="font-semibold text-lg mb-1">핵심 주장</h4>
+                                <p>반드시 학습해야 할 가치, 인지 훈련 요소, 지식의 근본이 존재한다고 봤음. <strong class="keyword-teal">교과 지식 숙달</strong>과 교사 권위 강조함.</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg mb-1" style="color: #D9534F;">비판 및 한계</h4>
+                                <p>인지심리학은 지식 습득이 <strong class="keyword-orange">상황·맥락 기반</strong>이라며 본질주의를 비판함. 학교 지식에 여전히 편견이 남아있음 보여줌.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card expandable cursor-pointer">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <svg class="w-6 h-6 mr-3 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                <h3 class="card-title text-2xl">2. 구조주의적 인식론의 재검토</h3>
+                            </div>
+                            <span class="text-gray-500 text-2xl transform transition-transform duration-300">▼</span>
+                        </div>
+                         <div class="details mt-4 text-gray-700 space-y-4">
+                            <div>
+                                <h4 class="font-semibold text-lg mb-1">핵심 주장</h4>
+                                <p>브루너의 '<strong class="keyword-teal">나선형 교육과정</strong>'과 '<strong class="keyword-orange">지식의 구조</strong>' 개념이 대표적임. 교과 핵심 구조를 수준에 맞게 반복하는 것 강조</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg mb-1" style="color: #D9534F;">비판 및 한계</h4>
+                                <p>브루너의 진짜 관심사는 지식 구조보다 '<strong class="keyword-teal">인간 사고의 변화</strong>'였음. <br>'지식의 구조'는 논의 없이 관습적으로 쓰였고, 이제 지식의 <strong class="keyword-orange">유동적, 관계적, 융합적 성격</strong> 연구가 필요함.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card expandable cursor-pointer">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <svg class="w-6 h-6 mr-3 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                <h3 class="card-title text-2xl">3. 경험주의적 인식론의 한계임</h3>
+                            </div>
+                            <span class="text-gray-500 text-2xl transform transition-transform duration-300">▼</span>
+                        </div>
+                        <div class="details mt-4 text-gray-700 space-y-4">
+                            <div>
+                                <h4 class="font-semibold text-lg mb-1">핵심 주장</h4>
+                                <p>듀이 진보주의 교육의 핵심 기반으로, 학생의 <strong class="keyword-teal">직접 경험</strong>을 통한 학습을 강조했음.</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg mb-1" style="color: #D9534F;">비판 및 한계</h4>
+                                <ul class="list-disc list-inside space-y-2">
+                                    <li><b>경험 방식의 변화:</b> <strong class="keyword-orange">가상/증강현실</strong> 등장으로 경험이 신체 접촉에만 의존하지 않음.</li>
+                                    <li><b>경험 주체의 확장:</b> 인간만이 경험 주체라는 관점에서 벗어나, 인간과 <strong class="keyword-teal">비인간의 동등한 관계성</strong>이 중요해짐.</li>
+                                    <li><b>경험 개념의 확장:</b> <strong class="keyword-orange">신실증주의</strong>는 모든 사물의 상호작용 결과를 '경험'으로 봄. 물질이나 신체도 능동적 경험 주체가 될 수 있다고 주장함.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="s3" class="content-section">
+                <div class="text-center mb-10">
+                    <div class="flex justify-center items-center">
+                        <svg class="w-8 h-8 mr-4 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.25 15.75c0-1.036.84-1.875 1.875-1.875h13.75c1.036 0 1.875.84 1.875 1.875v3c0 1.036-.84 1.875-1.875 1.875H5.125c-1.036 0-1.875-.84-1.875-1.875v-3z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15.75V9m0 0a2.25 2.25 0 00-2.25-2.25h0A2.25 2.25 0 007.5 9v.035m4.5-.035a2.25 2.25 0 012.25-2.25h0A2.25 2.25 0 0116.5 9v.035"></path></svg>
+                        <h2 class="text-3xl font-bold">탈인본주의적 대안: 비대표성이론</h2>
+                    </div>
+                    <p class="max-w-3xl mx-auto mt-2"><strong class="keyword-teal">인간 중심 시각</strong>에서 벗어나 다양한 존재를 이해하려는 새 접근법이 필요함. <br><strong class="keyword-orange">비대표성이론</strong>은 인간의 우월성을 전제 않고, 모든 존재의 <strong class="keyword-teal">상호작용</strong>과 <strong class="keyword-orange">관계성</strong>에 주목하는 실천적 대안을 제시함.</p>
+                </div>
+                
+                <div class="card expandable cursor-pointer mb-8">
+                    <div class="flex justify-between items-center">
+                        <h3 class="card-title text-xl">비대표성이론의 배경 사상 알아보기</h3>
+                        <span class="text-gray-500 text-2xl transform transition-transform duration-300">▼</span>
+                    </div>
+                    <div class="details mt-4 text-gray-700">
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <div class="p-4 rounded-lg bg-gray-50 border">
+                                <h4 class="font-semibold text-lg mb-1 text-gray-800">후기구조주의</h4>
+                                <p class="text-sm">절대적 진리나 구조 대신, 지식과 권력의 관계, 언어의 불확실성을 탐구함.</p>
+                            </div>
+                            <div class="p-4 rounded-lg bg-gray-50 border">
+                                <h4 class="font-semibold text-lg mb-1 text-gray-800">현상학</h4>
+                                <p class="text-sm">객관적 세계보다 개인이 직접 경험하는 주관적 세계와 그 의미에 집중함.</p>
+                            </div>
+                            <div class="p-4 rounded-lg bg-gray-50 border">
+                                <h4 class="font-semibold text-lg mb-1 text-gray-800">생태페미니즘</h4>
+                                <p class="text-sm">여성에 대한 억압과 자연 파괴가 동일한 지배 논리에 뿌리를 둔다고 보고 연결점을 찾음.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-8">
+                    <div class="flex justify-center items-center mb-4">
+                        <svg class="w-6 h-6 mr-3 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                        <h3 class="card-title text-2xl">비대표성이론 (Non-representational theory)</h3>
+                    </div>
+                     <p class="text-center text-gray-700">인간 관점으로만 세상을 설명하던 것에서 벗어나려는 <strong class="keyword-teal">반성적 성찰</strong>임. <br>위 사상들<strong>(후기구조주의, 현상학, 생태페미니즘)</strong>이 혼합된 <strong class="keyword-orange">실천지향적 존재인식론</strong>임.</p>
+                </div>
+
+                <div class="relative py-8">
+                     <div class="grid grid-cols-3 gap-8 text-center">
+                        <div class="diagram-box theory-box flex flex-col items-center justify-center" data-title="신물질주의" data-text="인간의 이성/언어 중심 설명에서 벗어나, 설명되지 않는 다양한 존재들의 체화된 삶을 이해하려는 태도임.">
+                            <svg class="w-8 h-8 mb-2 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            <h4 class="font-bold text-lg">신물질주의</h4>
+                        </div>
+                        <div class="diagram-box theory-box flex flex-col items-center justify-center" data-title="객체지향존재론" data-text="인간 주체성에 의존 않고 모든 존재의 공동 주체화를 목표로 함. 인간과 사물의 공존 관계 회복을 윤리적 목표로 삼음.">
+                            <svg class="w-8 h-8 mb-2 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M12 17v-2.5M10 14.5V12l-2-1m0 0l-2 1m2-1v2.5M6 17v-2.5m6-9l2-1m0 0l2 1m-2-1v2.5M12 3v2.5m-2 2.5V8l2-1m0 0l2 1M8 8v2.5"></path></svg>
+                            <h4 class="font-bold text-lg">객체지향존재론</h4>
+                        </div>
+                        <div class="diagram-box theory-box flex flex-col items-center justify-center" data-title="포스트현상학" data-text="인간 신체는 세계와 분리되지 않고 계속 상호작용한다고 봄. 기술 발전이 소통 방식을 바꾸고 있기에 새 설명이 필요함.">
+                            <svg class="w-8 h-8 mb-2 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2z"></path></svg>
+                            <h4 class="font-bold text-lg">포스트현상학</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="theory-details" class="card mt-8 hidden">
+                    <h3 id="theory-title" class="card-title text-xl mb-2"></h3>
+                    <p id="theory-text" class="text-gray-700"></p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <button id="gemini-deep-dive" class="gemini-btn flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            AI로 더 알아보기
+                        </button>
+                        <button id="copy-deep-dive-btn" class="gemini-btn flex items-center justify-center" style="background-color: #718096;">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            답변 복사
+                        </button>
+                    </div>
+                    <div id="gemini-deep-dive-result" class="mt-4 p-4 border-t border-gray-200"></div>
+                </div>
+
+            </section>
+            
+            <section id="s4" class="content-section">
+                <div class="text-center mb-10">
+                    <div class="flex justify-center items-center">
+                       <svg class="w-8 h-8 mr-4 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                       <h2 class="text-3xl font-bold">결론: 인본주의에서 포스트휴먼 경험으로</h2>
+                    </div>
+                    <p class="max-w-3xl mx-auto mt-2">이제 교육은 인간 중심 패러다임을 넘어, 모든 존재가 능동적으로 관계 맺는 <strong class="keyword-teal">포스트휴먼적 경험</strong>을 포용해야 함. <br>이는 지식 구분을 재구성하고, 20세기 인식론 한계를 극복하며, 새 대안을 모색하는 것을 의미함.</p>
+                </div>
+                <div class="card mb-8">
+                    <h3 class="card-title text-2xl mb-4 text-center">인본주의적 경험 vs 포스트휴먼적 경험</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr>
+                                    <th class="border-b-2 p-4 text-lg font-semibold text-gray-700">인본주의적 경험</th>
+                                    <th class="border-b-2 p-4 text-lg font-semibold text-gray-700">포스트휴먼적 경험</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b">
+                                    <td class="p-4 align-top">경험의 주체(인간), 매개, 대상이 <strong class="keyword-teal">분명히 구분됨</strong></td>
+                                    <td class="p-4 align-top">경험의 주체, 매개, 대상의 <strong class="keyword-orange">구분이 없음</strong></td>
+                                </tr>
+                                <tr class="border-b">
+                                    <td class="p-4 align-top"><strong class="keyword-teal">인간이 중심</strong>이 되어 세계를 경험함</td>
+                                    <td class="p-4 align-top">모든 존재가 능동성을 갖고 관계망 속에서 <strong class="keyword-orange">상호 교류하는 것 자체가 경험</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 align-top">대표적, 이성적, <strong class="keyword-teal">인간중심적</strong></td>
+                                    <td class="p-4 align-top">비대표적, 관계적, <strong class="keyword-orange">탈인간중심적</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="card-title text-2xl mb-4 text-center">교육과정 인식론의 대안적 방향</h3>
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div class="p-6 bg-white rounded-lg border">
+                           <h4 class="font-bold text-lg mb-2">지식 구분의 재구성</h4>
+                           <p>전통적 구분은 인본주의적 자의성에 기반하므로 재구성돼야 함. 학교 교육은 체계성 대신 <strong class="keyword-teal">융통성, 개별성, 시의성</strong>을 수용해야 함.</p>
+                        </div>
+                        <div class="p-6 bg-white rounded-lg border">
+                           <h4 class="font-bold text-lg mb-2">20세기 인식론의 극복</h4>
+                           <p>본질주의, 구조주의, 경험주의는 더는 적합하지 않음. <strong class="keyword-orange">포스트휴머니즘</strong>이 새 이론 기반이 될 수 있음.</p>
+                        </div>
+                        <div class="p-6 bg-white rounded-lg border">
+                           <h4 class="font-bold text-lg mb-2">비대표성이론의 가능성</h4>
+                           <p><strong class="keyword-teal">비대표성이론</strong>은 인본주의적 지식관의 대안으로, 교육과정의 철학, 인식론, 방법론에서 의미 있는 논의를 열어줄 수 있음.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="s5" class="content-section">
+                <div class="text-center mb-10">
+                    <div class="flex justify-center items-center">
+                        <svg class="w-8 h-8 mr-4 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"></path></svg>
+                        <h2 class="text-3xl font-bold">생각해 볼 것: 고등학교 영어교사로서의 성찰</h2>
+                    </div>
+                    <p class="max-w-3xl mx-auto mt-2">이러한 인식론적 전환은 교육 현장, 특히 영어 교육에 많은 시사점을 던짐. <br>다음 논제로 영어교사로서 역할을 돌아보고 미래 교육 방향을 고민해 봄.</p>
+                </div>
+                <div class="space-y-6">
+                    <div class="card">
+                        <h3 class="card-title text-xl mb-2">논제 1: '<strong class="keyword-teal">텍스트' 경계 해체</strong>와 영어 교육</h3>
+                        <p class="text-gray-700">전통적 지식 구분이 무의미해지듯, '고전 텍스트'와 '<strong class="keyword-orange">디지털 텍스트</strong>'(유튜브, 밈 등)의 경계도 희미해짐. 영어 수업에서 다루는 '텍스트'의 범위는 어디까지 확장해야 하며, 다양한 텍스트를 비판적으로 이해하고 창조하는 능력은 어떻게 길러줄 것인가?</p>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title text-xl mb-2">논제 2: AI 번역기는 '<strong class="keyword-teal">도구'인가, '협력자'인가</strong></h3>
+                        <p class="text-gray-700">경험 주체가 인간만이 아니라는 포스트휴먼 관점에서, AI 번역기는 단순 '도구'인가? 아니면 의미를 함께 구성하는 '<strong class="keyword-orange">비인간 행위자</strong>'인가? AI를 교육에 통합해 인간과 기술이 공존하는 새 학습 경험을 어떻게 설계할지 고민이 필요함.</p>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title text-xl mb-2">논제 3: '<strong class="keyword-teal">문화 교육'의 재정의</strong> - 본질주의를 넘어서임</h3>
+                        <p class="text-gray-700">본질주의는 '미국 문화'처럼 고정된 실체를 전제하는 경향이 있음. 하지만 포스트휴먼 시각은 문화를 <strong class="keyword-orange">유동적 상호작용</strong>의 산물로 봄. 고정관념을 넘어, 학생들이 다양한 문화와 관계 맺고 자신만의 의미를 구성하게 돕는 문화 교육은 어떤 모습이어야 하는가?</p>
+                    </div>
+                </div>
+                
+                <div class="card mt-12">
+                    <div class="flex justify-center items-center mb-4">
+                        <svg class="w-6 h-6 mr-3 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <h3 class="card-title text-2xl">나만의 논제 만들어보기</h3>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <select id="subject-select" class="p-2 border rounded-md w-full sm:w-auto">
+                            <option value="국어">국어</option>
+                            <option value="영어">영어</option>
+                            <option value="수학">수학</option>
+                            <option value="사회">사회</option>
+                            <option value="과학">과학</option>
+                            <option value="예체능">예체능</option>
+                        </select>
+                        <button id="generate-prompts-btn" class="gemini-btn w-full sm:w-auto flex items-center justify-center">
+                            논제 생성
+                        </button>
+                    </div>
+                    <div id="gemini-prompts-result" class="mt-6"></div>
+                </div>
+
+            </section>
+            
+            <section id="s6" class="content-section">
+                <div class="text-center mb-10">
+                    <div class="flex justify-center items-center">
+                        <svg class="w-8 h-8 mr-4 text-[#C87A4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13.5M8.25 6.253l-3 3m3-3l3 3m-3.75 6.75l-3 3m3-3l3 3M15.75 6.253l3 3m-3-3l-3 3m3.75 6.75l3 3m-3-3l-3 3"></path></svg>
+                        <h2 class="text-3xl font-bold">6. 2022 개정교육과정</h2>
+                    </div>
+                    <p class="max-w-3xl mx-auto mt-2">포스트휴먼 사회에서 현재 교육과정 및 대학 입학전형 / 비전 살펴보기 </p>
+                </div>
+                <div class="card">
+                    <ul class="space-y-4 text-lg">
+                        <li class="expandable cursor-pointer">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold">1. 2022 개정 초중등 교육과정 총론</span>
+                                <span class="text-gray-500 text-2xl transform transition-transform duration-300">▼</span>
+                            </div>
+                            <div class="details mt-4">
+                                <img id="curriculum-img-thumb" src="https://ivy-rugby-daf.notion.site/image/attachment%3A9fe4513c-1266-4492-af17-a58f2695e5a1%3A%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7_2025-11-10_013603.png?table=block&id=2a63ec20-06d9-8041-a24f-d35eff332cd6&spaceId=a57f2ff5-0671-465c-bf6a-c699bdf0fd16&width=1420&userId=&cache=v2" alt="2022 개정 교육과정" class="cursor-pointer w-full rounded-md shadow-md">
+                            </div>
+                        </li>
+                        <li class="expandable cursor-pointer">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold">2. 2028학년도 서울대학교 신입생 입학전형 주요 사항</span>
+                                <span class="text-gray-500 text-2xl transform transition-transform duration-300">▼</span>
+                            </div>
+                            <div class="details mt-4">
+                                <img id="snu-img-thumb" src="https://ivy-rugby-daf.notion.site/image/attachment%3A2b9836a1-debe-4d5c-ad57-17f4b5dd594a%3A%EC%8A%A4%ED%S%B0%EB%A6%B0%EC%83%B7_2025-11-10_014122.png?table=block&id=2a63ec20-06d9-804c-ba34-d231c3fa6e3a&spaceId=a57f2ff5-0671-465c-bf6a-c699bdf0fd16&width=1420&userId=&cache=v2" alt="2028 서울대학교 입학전형" class="cursor-pointer w-full rounded-md shadow-md">
+                            </div>
+                        </li>
+                        <li class="expandable cursor-pointer">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold">3. 서울대학교 비전 및 인재상</span>
+                                <span class="text-gray-500 text-2xl transform transition-transform duration-300">▼</span>
+                            </div>
+                            <div class="details mt-4">
+                                <img id="snu-vision-img-thumb" src="https://ivy-rugby-daf.notion.site/image/attachment%3Ab0c7ed56-721a-4c35-afd0-262988ebd736%3A%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7_2025-11-10_014331.png?table=block&id=2a63ec20-06d9-806f-8426-ceba2241e104&spaceId=a57f2ff5-0671-465c-bf6a-c699bdf0fd16&width=1420&userId=&cache=v2" alt="서울대학교 비전 및 인재상" class="cursor-pointer w-full rounded-md shadow-md">
+                            </div>
+                        </li>
+                        <li class="expandable cursor-pointer">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold">4. 2028학년도 경희대학교 신입생 입학전형 주요 사항</span>
+                                <span class="text-gray-500 text-2xl transform transition-transform duration-300">▼</span>
+                            </div>
+                            <div class="details mt-4">
+                                <img id="khu-img-thumb" src="https://ivy-rugby-daf.notion.site/image/attachment%3A5c434e3c-d108-46e2-b8a3-be7081715c1f%3A%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7_2025-11-10_014722.png?table=block&id=2a63ec20-06d9-8072-8684-f08e77c653c8&spaceId=a57f2ff5-0671-465c-bf6a-c699bdf0fd16&width=1420&userId=&cache=v2" alt="2028 경희대학교 입학전형" class="cursor-pointer w-full rounded-md shadow-md">
+                            </div>
+                        </li>
+                        <li class="expandable cursor-pointer">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold">5. 경희대학교 비전 및 인재상</span>
+                                <span class="text-gray-500 text-2xl transform transition-transform duration-300">▼</span>
+                            </div>
+                            <div class="details mt-4">
+                                <img id="khu-vision-img-thumb" src="https://ivy-rugby-daf.notion.site/image/attachment%3Ad6d76609-77d3-445a-b970-a6aa25c3e629%3A%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7_2025-11-10_014856.png?table=block&id=2a63ec20-06d9-80f0-9c30-cfedccf0d5ca&spaceId=a57f2ff5-0671-465c-bf6a-c699bdf0fd16&width=1420&userId=&cache=v2" alt="경희대학교 비전 및 인재상" class="cursor-pointer w-full rounded-md shadow-md">
+                            </div>
+                        </li>
+                        <li class="expandable cursor-pointer">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold">6. 전북대학교 비전 및 인재상</span>
+                                <span class="text-gray-500 text-2xl transform transition-transform duration-300">▼</span>
+                            </div>
+                            <div class="details mt-4">
+                                <img id="jbnu-vision-img-thumb" src="https://ivy-rugby-daf.notion.site/image/attachment%3Af2e85295-fa76-411e-b48d-e048b94db898%3A%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7_2025-11-10_015128.png?table=block&id=2a63ec20-06d9-8009-b033-f260fd3867e7&spaceId=a57f2ff5-0671-465c-bf6a-c699bdf0fd16&width=1420&userId=&cache=v2" alt="전북대학교 비전 및 인재상" class="cursor-pointer w-full rounded-md shadow-md">
+                            </div>
+                        </li>
+                        <li class="expandable cursor-pointer">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold">7. 전주교육대학교 비전 및 인재상</span>
+                                <span class="text-gray-500 text-2xl transform transition-transform duration-300">▼</span>
+                            </div>
+                            <div class="details mt-4">
+                                <img id="jnue-vision-img-thumb" src="https://ivy-rugby-daf.notion.site/image/attachment%3A9f293de8-3097-49db-bb60-9011e07b71e4%3A%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7_2025-11-10_015404.png?table=block&id=2a63ec20-06d9-80fe-99e8-c7d33a38c1f3&spaceId=a57f2ff5-0671-465c-bf6a-c699bdf0fd16&width=1420&userId=&cache=v2" alt="전주교육대학교 비전 및 인재상" class="cursor-pointer w-full rounded-md shadow-md">
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="image-modal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex items-center justify-center p-4">
+        <span id="close-modal" class="absolute top-6 right-8 text-white text-5xl cursor-pointer">&times;</span>
+        <img id="modal-image" src="" alt="Fullscreen Image" class="max-w-full max-h-full object-contain">
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let deepDiveCache = {};
+            let promptsCache = {};
+
+            const navItems = document.querySelectorAll('.nav-item');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const targetId = item.dataset.target;
+
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    item.classList.add('active');
+
+                    contentSections.forEach(section => {
+                        if (section.id === targetId) {
+                            section.classList.add('active');
+                        } else {
+                            section.classList.remove('active');
+                        }
+                    });
+                });
+            });
+
+            const expandableCards = document.querySelectorAll('.expandable');
+            expandableCards.forEach(card => {
+                card.addEventListener('click', (e) => {
+                    // 이미지 클릭 시 토글이 닫히지 않도록 함
+                    if (e.target.tagName === 'IMG') {
+                        return;
+                    }
+                    
+                    card.classList.toggle('open');
+                    const icon = card.querySelector('.transform');
+                    if(icon) {
+                        if (card.classList.contains('open')) {
+                            icon.style.transform = 'rotate(180deg)';
+                        } else {
+                            icon.style.transform = 'rotate(0deg)';
+                        }
+                    }
+                });
+            });
+            
+            const theoryBoxes = document.querySelectorAll('.theory-box');
+            const theoryDetailsContainer = document.getElementById('theory-details');
+            const theoryTitle = document.getElementById('theory-title');
+            const theoryText = document.getElementById('theory-text');
+            const geminiDeepDiveBtn = document.getElementById('gemini-deep-dive');
+            const geminiDeepDiveResult = document.getElementById('gemini-deep-dive-result');
+            const copyDeepDiveBtn = document.getElementById('copy-deep-dive-btn');
+
+            function copyToClipboard(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed'; 
+                textarea.style.opacity = 0;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    return true;
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    return false;
+                } finally {
+                    document.body.removeChild(textarea);
+                }
+            }
+
+            if(theoryBoxes.length > 0 && theoryDetailsContainer) {
+                theoryBoxes.forEach(box => {
+                    box.addEventListener('click', () => {
+                        const title = box.dataset.title;
+                        const text = box.dataset.text;
+
+                        theoryTitle.textContent = title;
+                        theoryText.textContent = text;
+                        theoryDetailsContainer.classList.remove('hidden');
+                        
+                        if (deepDiveCache[title]) {
+                            geminiDeepDiveResult.innerHTML = deepDiveCache[title];
+                            const newButtonContent = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12A8 8 0 1013.2 5.2"></path></svg> 다시 생성하기`;
+                            geminiDeepDiveBtn.innerHTML = newButtonContent;
+                        } else {
+                            geminiDeepDiveResult.innerHTML = '';
+                            const initialButtonContent = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> AI로 더 알아보기`;
+                            geminiDeepDiveBtn.innerHTML = initialButtonContent;
+                        }
+                        
+                        theoryBoxes.forEach(b => b.style.borderColor = '#CBD5E0');
+                        box.style.borderColor = '#4A5568';
+                    });
+                });
+
+                if (copyDeepDiveBtn) {
+                    copyDeepDiveBtn.addEventListener('click', () => {
+                        const textToCopy = geminiDeepDiveResult.innerText;
+                        if (textToCopy && copyToClipboard(textToCopy)) {
+                            const originalText = copyDeepDiveBtn.innerHTML;
+                            copyDeepDiveBtn.innerHTML = '복사 완료!';
+                            setTimeout(() => {
+                                copyDeepDiveBtn.innerHTML = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> 답변 복사`;
+                            }, 2000);
+                        }
+                    });
+                }
+            }
+
+            // --- Gemini API Integration ---
+
+            const apiKey = "AIzaSyDp3L9VD3aH_Dk5rx0TB2dIWxymKuKWnao"; // API 키는 Canvas 환경에서 자동으로 제공됩니다.
+
+            async function callGeminiAPI(prompt, systemInstruction = "") {
+                const model = 'gemini-2.5-flash-preview-09-2025';
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                };
+                
+                if (systemInstruction) {
+                    payload.systemInstruction = {
+                        parts: [{ text: systemInstruction }]
+                    };
+                }
+
+                let response;
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        throw new Error(`API 요청 실패: ${response.status} ${response.statusText}\n${errorBody}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.candidates && result.candidates[0].content.parts[0].text) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        return "죄송합니다, 유효한 응답을 받지 못했습니다. 잠시 후 다시 시도해주세요.";
+                    }
+                } catch (error) {
+                    console.error("Gemini API 호출 중 오류 발생:", error);
+                    return "오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+                }
+            }
+            
+            function showLoader(container) {
+                container.innerHTML = '<div class="loader"></div>';
+            }
+
+            // Feature 1: AI Deep Dive
+            if (geminiDeepDiveBtn) {
+                geminiDeepDiveBtn.addEventListener('click', async () => {
+                    const conceptTitle = theoryTitle.textContent;
+                    showLoader(geminiDeepDiveResult);
+                    const prompt = `'${conceptTitle}' 개념에 대해 교사가 쉽게 이해할 수 있도록 **개념 설명**, **초등학생을 위한 설명**, **중고등학생을 위한 설명**, **교실 적용 예시** 순서로 나누어 설명함.
+
+**중요 규칙:**
+1. 모든 문장의 어미는 '~임', '~함', '~음', '~됨', '~짐', '~냄' 중 하나로 통일해야 함.
+2. '**개념 설명**', '**초등학생을 위한 설명**', '**중고등학생을 위한 설명**', '**교실 적용 예시**' 소제목은 반드시 **별표 두 개**로 감싸서 굵게 표시해야 함.
+3. 각 섹션(소제목이 이끄는 부분) 사이에는 '---REDLINE---' 구분선을 반드시 삽입해야 함.
+4. 답변은 마크다운 형식을 사용하지 말고, 위 규칙에 따른 일반 텍스트로만 작성해야 함.`;
+                    
+                    const result = await callGeminiAPI(prompt);
+                    let formattedResult = result.replace(/\n/g, '<br>');
+                    formattedResult = formattedResult.replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-900">$1</strong>');
+                    formattedResult = formattedResult.replace(/---REDLINE---/g, '<hr class="border-red-400 my-4 border-dashed">');
+                    
+                    geminiDeepDiveResult.innerHTML = formattedResult;
+                    deepDiveCache[conceptTitle] = formattedResult;
+                    const newButtonContent = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12A8 8 0 1013.2 5.2"></path></svg> 다시 생성하기`;
+                    geminiDeepDiveBtn.innerHTML = newButtonContent;
+                });
+            }
+
+            // Feature 2: Generate Custom Prompts
+            const generatePromptsBtn = document.getElementById('generate-prompts-btn');
+            const subjectSelect = document.getElementById('subject-select');
+            const geminiPromptsResult = document.getElementById('gemini-prompts-result');
+            const copyPromptsBtn = document.getElementById('copy-prompts-btn');
+
+            if (generatePromptsBtn) {
+                generatePromptsBtn.addEventListener('click', async () => {
+                    const selectedSubject = subjectSelect.value;
+                    showLoader(geminiPromptsResult);
+                    
+                    const systemPrompt = "당신은 교육 철학에 대한 깊은 이해를 바탕으로 교사들에게 창의적인 교육 아이디어를 제공하는 AI 조수입니다. 다음은 '학교지식 인식론의 전환'에 대한 요약입니다: 전통적 지식 구분은 절대적이지 않으며, 20세기 교육 인식론(본질주의, 구조주의, 경험주의)은 한계에 도달했습니다. 대안으로 인간 중심주의를 벗어나는 포스트휴머니즘과 비대표성이론이 제시됩니다. 이는 인간과 비인간(기술, 자연 등)의 경계가 흐려지고, 모든 존재가 상호작용하며 경험을 구성한다는 관점입니다.";
+
+                    const userPrompt = `위 내용을 바탕으로, 초등학교와 중고등학교 '${selectedSubject}' 교사의 입장에서 학생들과 토론하거나 수업 설계를 위해 고민해볼 수 있는 새로운 논제 3가지를 각각 생성함.
+
+**중요 규칙:**
+1. '**초등학교 ${selectedSubject} 교사 논제**'와 '**중고등학교 ${selectedSubject} 교사 논제**'라는 두 개의 소제목으로 명확히 구분해야 함.
+2. 모든 문장의 어미는 '~임', '~함', '~음', '~됨', '~짐', '~냄' 중 하나로 통일해야 함.
+3. 소제목은 반드시 **별표 두 개**로 감싸서 굵게 표시해야 함.
+4. 두 소제목 섹션 사이에는 '---REDLINE---' 구분선을 반드시 삽입해야 함.
+5. 답변은 마크다운 형식을 사용하지 말고, 위 규칙에 따른 일반 텍스트로만 작성해야 함.`;
+                    
+                    const result = await callGeminiAPI(userPrompt, systemPrompt);
+                    let formattedResult = result.replace(/\n/g, '<br>');
+                    formattedResult = formattedResult.replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-900">$1</strong>');
+                    formattedResult = formattedResult.replace(/---REDLINE---/g, '<hr class="border-red-400 my-4 border-dashed">');
+
+                    geminiPromptsResult.innerHTML = formattedResult;
+                    promptsCache['lastResult'] = formattedResult;
+                    generatePromptsBtn.innerHTML = '논제 다시 생성';
+                });
+            }
+
+            if (copyPromptsBtn) {
+                copyPromptsBtn.addEventListener('click', () => {
+                    const textToCopy = geminiPromptsResult.innerText;
+                    if (textToCopy && copyToClipboard(textToCopy)) {
+                        const originalText = copyPromptsBtn.innerHTML;
+                        copyPromptsBtn.innerHTML = '복사 완료!';
+                        setTimeout(() => {
+                            copyPromptsBtn.innerHTML = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> 답변 복사`;
+                        }, 2000);
+                    }
+                });
+            }
+
+            // Image Modal Logic
+            const imageModal = document.getElementById('image-modal');
+            const modalImage = document.getElementById('modal-image');
+            const closeModal = document.getElementById('close-modal');
+            
+            // 3. All image thumbnail IDs
+            const imageThumbnails = [
+                document.getElementById('curriculum-img-thumb'),
+                document.getElementById('snu-img-thumb'),
+                document.getElementById('snu-vision-img-thumb'),
+                document.getElementById('khu-img-thumb'),
+                document.getElementById('khu-vision-img-thumb'),
+                document.getElementById('jbnu-vision-img-thumb'),
+                document.getElementById('jnue-vision-img-thumb')
+            ];
+
+            // 4. Loop to add click listener to all thumbnails
+            imageThumbnails.forEach(thumb => {
+                if (thumb) {
+                    thumb.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent the toggle from closing
+                        if (imageModal && modalImage) {
+                            modalImage.src = thumb.src;
+                            imageModal.classList.remove('hidden');
+                        }
+                    });
+                }
+            });
+
+            if (closeModal) {
+                closeModal.addEventListener('click', () => {
+                    if (imageModal) {
+                        imageModal.classList.add('hidden');
+                    }
+                });
+            }
+            
+            if (imageModal) {
+                imageModal.addEventListener('click', (e) => {
+                    // Close if clicked on the background
+                    if (e.target === imageModal) {
+                        imageModal.classList.add('hidden');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
+
