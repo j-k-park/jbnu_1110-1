@@ -9,10 +9,11 @@ export default async function handler(request, response) {
     //    이 키는 절대로 외부에 노출되지 않음.
     const apiKey = process.env.GEMINI_API_KEY;
     
-    const model = 'gemini-2.5-flash-preview-09-2025';
+    // 3. 모델 이름을 유효한 모델명으로 수정함 (기존 09-2025 -> 05-20)
+    const model = 'gemini-2.5-flash-preview-05-20';
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    // 3. Google API로 보낼 payload를 구성함.
+    // 4. Google API로 보낼 payload를 구성함.
     const payload = {
         contents: [{ parts: [{ text: prompt }] }],
     };
@@ -24,7 +25,7 @@ export default async function handler(request, response) {
     }
 
     try {
-        // 4. Vercel 서버가 Google Gemini API를 직접 호출함.
+        // 5. Vercel 서버가 Google Gemini API를 직접 호출함.
         const geminiResponse = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -40,12 +41,12 @@ export default async function handler(request, response) {
 
         const data = await geminiResponse.json();
 
-        // 5. 성공적인 응답을 프론트엔드(index.html)로 다시 전달함.
+        // 6. 성공적인 응답을 프론트엔드(index.html)로 다시 전달함.
         response.status(200).json(data);
 
     } catch (error) {
         console.error("서버리스 함수 오류:", error);
-        // 6. 오류 발생 시, 오류 메시지를 프론트엔드(index.html)로 전달함.
+        // 7. 오류 발생 시, 오류 메시지를 프론트엔드(index.html)로 전달함.
         response.status(500).json({ error: error.message });
     }
 }
